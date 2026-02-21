@@ -2,17 +2,19 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My_skycast | Weather Dashboard</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
 
         body {
             background: linear-gradient(135deg, #1e3c72, #2a5298);
-            height: 100vh;
+            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             color: white;
+            padding: 20px;
         }
 
         /* Brand Logo Style */
@@ -23,20 +25,25 @@
             margin-bottom: 20px;
             color: #ffce54;
             text-transform: uppercase;
-            text-shadow: 0 0 10px rgba(255, 206, 84, 0.5);
+            text-shadow: 0 0 10px rgba(255, 206, 84, 0.4);
         }
 
+        /* Responsive Card Container */
         .card {
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px); /* Safari support */
             padding: 30px;
             border-radius: 25px;
-            width: 380px;
+            width: 100%;
+            max-width: 400px;
             text-align: center;
             border: 1px solid rgba(255, 255, 255, 0.2);
             box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            transition: transform 0.3s ease;
         }
 
+        /* Search Section */
         .search {
             display: flex;
             align-items: center;
@@ -56,6 +63,8 @@
             font-size: 16px;
         }
 
+        ::placeholder { color: rgba(255, 255, 255, 0.7); }
+
         button {
             background: white;
             border: none;
@@ -64,12 +73,18 @@
             cursor: pointer;
             font-weight: bold;
             transition: 0.3s;
+            color: #1e3c72;
         }
 
-        button:hover { background: #ddd; transform: scale(1.05); }
+        button:hover { background: #ffce54; transform: scale(1.05); }
+
+        /* Weather Info Section */
+        .weather-content { 
+            animation: fadeIn 0.8s ease forwards; 
+        }
 
         .city { font-size: 2.2rem; font-weight: 500; margin-top: 10px; }
-        .temp { font-size: 4.5rem; font-weight: 700; margin: 5px 0; color: #fff; }
+        .temp { font-size: 4.5rem; font-weight: 700; margin: 5px 0; }
         .desc { text-transform: uppercase; letter-spacing: 3px; opacity: 0.7; font-size: 0.8rem; }
 
         .details {
@@ -83,11 +98,17 @@
         .col span { display: block; font-size: 0.7rem; opacity: 0.6; text-transform: uppercase; }
         .col p { font-weight: 600; margin-top: 5px; font-size: 1.1rem; }
 
+        /* Mobile Adjustments */
+        @media (max-width: 400px) {
+            .card { padding: 20px; }
+            .temp { font-size: 3.5rem; }
+            .city { font-size: 1.8rem; }
+        }
+
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(15px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        .weather-content { animation: fadeIn 0.8s ease; }
     </style>
 </head>
 <body>
@@ -96,12 +117,12 @@
         <div class="brand-name">My_skycast</div>
 
         <div class="search">
-            <input type="text" id="cityInput" placeholder="Search city..." value="New York">
+            <input type="text" id="cityInput" placeholder="Enter city..." value="New York">
             <button onclick="getWeather()">GO</button>
         </div>
 
         <div class="weather-content" id="weatherContent">
-            <p class="desc">Live Conditions</p>
+            <p class="desc">Current Conditions</p>
             <p class="city" id="cityName">New York</p>
             <h1 class="temp" id="temperature">--°C</h1>
             
@@ -111,8 +132,8 @@
                     <p id="wind">-- km/h</p>
                 </div>
                 <div class="col">
-                    <span>Current Day</span>
-                    <p id="day">Today</p>
+                    <span>Status</span>
+                    <p id="status">Online</p>
                 </div>
             </div>
         </div>
@@ -124,29 +145,44 @@
             const cityDisplay = document.getElementById('cityName');
             const tempDisplay = document.getElementById('temperature');
             const windDisplay = document.getElementById('wind');
+            const content = document.getElementById('weatherContent');
+
+            // Add a small refresh animation
+            content.style.opacity = '0';
 
             try {
+                // Step 1: Geocoding (Convert City Name to Coordinates)
                 const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${city}&count=1&language=en&format=json`);
                 const geoData = await geoRes.json();
 
-                if (!geoData.results) {
-                    alert("Location not found! Please check the spelling.");
+                if (!geoData.results || geoData.results.length === 0) {
+                    alert("City not found. Please try another name!");
+                    content.style.opacity = '1';
                     return;
                 }
 
                 const { latitude, longitude, name } = geoData.results[0];
+
+                // Step 2: Fetch Weather Data
                 const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`);
                 const weatherData = await weatherRes.json();
 
+                // Step 3: Update UI
                 cityDisplay.innerHTML = name;
                 tempDisplay.innerHTML = Math.round(weatherData.current_weather.temperature) + "°C";
                 windDisplay.innerHTML = weatherData.current_weather.windspeed + " km/h";
+                
+                // Fade back in
+                content.style.opacity = '1';
 
             } catch (error) {
-                console.error("Data Fetch Error:", error);
+                console.error("API Error:", error);
+                alert("Could not fetch data. Check your internet connection.");
+                content.style.opacity = '1';
             }
         }
-        // Initial call
+
+        // Run automatically for default city
         getWeather();
     </script>
 </body>
