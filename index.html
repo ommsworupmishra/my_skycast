@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My_skycast | Weather Dashboard</title>
+    <title>My_skycast | Global Weather</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
 
         body {
             background: linear-gradient(135deg, #1e3c72, #2a5298);
@@ -17,22 +17,10 @@
             padding: 20px;
         }
 
-        /* Brand Logo Style */
-        .brand-name {
-            font-size: 1.2rem;
-            font-weight: 800;
-            letter-spacing: 2px;
-            margin-bottom: 20px;
-            color: #ffce54;
-            text-transform: uppercase;
-            text-shadow: 0 0 10px rgba(255, 206, 84, 0.4);
-        }
-
-        /* Responsive Card Container */
         .card {
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px); /* Safari support */
+            -webkit-backdrop-filter: blur(15px);
             padding: 30px;
             border-radius: 25px;
             width: 100%;
@@ -40,17 +28,23 @@
             text-align: center;
             border: 1px solid rgba(255, 255, 255, 0.2);
             box-shadow: 0 20px 50px rgba(0,0,0,0.3);
-            transition: transform 0.3s ease;
         }
 
-        /* Search Section */
+        .brand-name {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: #ffce54;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+        }
+
         .search {
             display: flex;
-            align-items: center;
             background: rgba(255, 255, 255, 0.2);
             border-radius: 15px;
-            padding: 5px 15px;
-            margin-bottom: 25px;
+            padding: 5px;
+            margin-bottom: 20px;
         }
 
         input {
@@ -63,52 +57,39 @@
             font-size: 16px;
         }
 
-        ::placeholder { color: rgba(255, 255, 255, 0.7); }
-
         button {
-            background: white;
+            background: #ffce54;
             border: none;
             border-radius: 10px;
-            padding: 8px 15px;
+            padding: 10px 20px;
             cursor: pointer;
             font-weight: bold;
-            transition: 0.3s;
             color: #1e3c72;
         }
 
-        button:hover { background: #ffce54; transform: scale(1.05); }
-
-        /* Weather Info Section */
-        .weather-content { 
-            animation: fadeIn 0.8s ease forwards; 
-        }
-
-        .city { font-size: 2.2rem; font-weight: 500; margin-top: 10px; }
-        .temp { font-size: 4.5rem; font-weight: 700; margin: 5px 0; }
-        .desc { text-transform: uppercase; letter-spacing: 3px; opacity: 0.7; font-size: 0.8rem; }
+        /* Weather Display Area */
+        .city { font-size: 2rem; margin-top: 10px; font-weight: 500; }
+        .temp { font-size: 4.5rem; font-weight: 700; margin: 10px 0; }
+        .info { opacity: 0.7; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; }
 
         .details {
             display: flex;
             justify-content: space-around;
-            margin-top: 30px;
+            margin-top: 25px;
             padding-top: 20px;
             border-top: 1px solid rgba(255, 255, 255, 0.2);
         }
 
-        .col span { display: block; font-size: 0.7rem; opacity: 0.6; text-transform: uppercase; }
-        .col p { font-weight: 600; margin-top: 5px; font-size: 1.1rem; }
+        .col span { font-size: 0.7rem; opacity: 0.6; display: block; }
+        .col p { font-weight: 600; font-size: 1.1rem; margin-top: 5px; }
 
-        /* Mobile Adjustments */
-        @media (max-width: 400px) {
-            .card { padding: 20px; }
-            .temp { font-size: 3.5rem; }
-            .city { font-size: 1.8rem; }
+        /* Animation */
+        @keyframes pulse {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
         }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(15px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        .loading { animation: pulse 1s infinite; font-style: italic; display: none; }
     </style>
 </head>
 <body>
@@ -117,13 +98,15 @@
         <div class="brand-name">My_skycast</div>
 
         <div class="search">
-            <input type="text" id="cityInput" placeholder="Enter city..." value="New York">
+            <input type="text" id="cityInput" placeholder="Enter city or town..." value="Bhubaneswar">
             <button onclick="getWeather()">GO</button>
         </div>
 
-        <div class="weather-content" id="weatherContent">
-            <p class="desc">Current Conditions</p>
-            <p class="city" id="cityName">New York</p>
+        <div id="loading" class="loading">Searching global maps...</div>
+
+        <div id="weatherContent">
+            <p class="info" id="statusHeader">Current Weather</p>
+            <p class="city" id="cityName">Bhubaneswar</p>
             <h1 class="temp" id="temperature">--°C</h1>
             
             <div class="details">
@@ -132,8 +115,8 @@
                     <p id="wind">-- km/h</p>
                 </div>
                 <div class="col">
-                    <span>Status</span>
-                    <p id="status">Online</p>
+                    <span>Region</span>
+                    <p id="country">--</p>
                 </div>
             </div>
         </div>
@@ -142,47 +125,50 @@
     <script>
         async function getWeather() {
             const city = document.getElementById('cityInput').value;
-            const cityDisplay = document.getElementById('cityName');
-            const tempDisplay = document.getElementById('temperature');
-            const windDisplay = document.getElementById('wind');
             const content = document.getElementById('weatherContent');
+            const loader = document.getElementById('loading');
+            
+            if(!city) return alert("Please type a place name!");
 
-            // Add a small refresh animation
-            content.style.opacity = '0';
+            // Show loading, hide content
+            loader.style.display = "block";
+            content.style.opacity = "0.3";
 
             try {
-                // Step 1: Geocoding (Convert City Name to Coordinates)
-                const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${city}&count=1&language=en&format=json`);
+                // STEP 1: Search for the city (using a wider search)
+                const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`;
+                const geoRes = await fetch(geoUrl);
                 const geoData = await geoRes.json();
 
-                if (!geoData.results || geoData.results.length === 0) {
-                    alert("City not found. Please try another name!");
-                    content.style.opacity = '1';
+                if (!geoData.results) {
+                    alert("Place not found. Try adding the state or country name (e.g., 'London, UK')");
+                    loader.style.display = "none";
+                    content.style.opacity = "1";
                     return;
                 }
 
-                const { latitude, longitude, name } = geoData.results[0];
+                const { latitude, longitude, name, admin1, country } = geoData.results[0];
 
-                // Step 2: Fetch Weather Data
+                // STEP 2: Get the weather for that specific spot
                 const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`);
                 const weatherData = await weatherRes.json();
 
-                // Step 3: Update UI
-                cityDisplay.innerHTML = name;
-                tempDisplay.innerHTML = Math.round(weatherData.current_weather.temperature) + "°C";
-                windDisplay.innerHTML = weatherData.current_weather.windspeed + " km/h";
-                
-                // Fade back in
-                content.style.opacity = '1';
+                // STEP 3: Update the Screen
+                document.getElementById('cityName').innerText = name;
+                document.getElementById('country').innerText = admin1 || country || "Global";
+                document.getElementById('temperature').innerText = Math.round(weatherData.current_weather.temperature) + "°C";
+                document.getElementById('wind').innerText = weatherData.current_weather.windspeed + " km/h";
+                document.getElementById('statusHeader').innerText = "Weather in " + name;
 
             } catch (error) {
-                console.error("API Error:", error);
-                alert("Could not fetch data. Check your internet connection.");
-                content.style.opacity = '1';
+                alert("Internet error! Please check your connection.");
+            } finally {
+                loader.style.display = "none";
+                content.style.opacity = "1";
             }
         }
 
-        // Run automatically for default city
+        // Run automatically when page opens
         getWeather();
     </script>
 </body>
