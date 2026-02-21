@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My_skycast | Global Weather</title>
+    <title>My_skycast | Global Weather Explorer</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; }
 
         body {
-            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -27,7 +27,7 @@
             max-width: 400px;
             text-align: center;
             border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
         }
 
         .brand-name {
@@ -39,12 +39,12 @@
             letter-spacing: 2px;
         }
 
-        .search {
+        .search-container {
             display: flex;
             background: rgba(255, 255, 255, 0.2);
             border-radius: 15px;
             padding: 5px;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
         input {
@@ -52,7 +52,7 @@
             border: none;
             outline: none;
             color: white;
-            padding: 10px;
+            padding: 12px;
             width: 100%;
             font-size: 16px;
         }
@@ -65,31 +65,35 @@
             cursor: pointer;
             font-weight: bold;
             color: #1e3c72;
+            transition: 0.3s;
         }
 
-        /* Weather Display Area */
-        .city { font-size: 2rem; margin-top: 10px; font-weight: 500; }
-        .temp { font-size: 4.5rem; font-weight: 700; margin: 10px 0; }
-        .info { opacity: 0.7; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; }
+        button:hover { background: #fff; }
 
-        .details {
-            display: flex;
-            justify-content: space-around;
+        .loading { display: none; font-size: 0.9rem; color: #ffce54; margin-bottom: 10px; }
+
+        /* Weather UI */
+        .city-title { font-size: 2.2rem; margin-top: 10px; font-weight: 600; }
+        .region-info { font-size: 0.9rem; opacity: 0.7; margin-bottom: 10px; text-transform: uppercase; }
+        .temp-display { font-size: 5rem; font-weight: 800; margin: 10px 0; }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
             margin-top: 25px;
             padding-top: 20px;
             border-top: 1px solid rgba(255, 255, 255, 0.2);
         }
 
-        .col span { font-size: 0.7rem; opacity: 0.6; display: block; }
-        .col p { font-weight: 600; font-size: 1.1rem; margin-top: 5px; }
+        .item span { font-size: 0.7rem; opacity: 0.6; display: block; text-transform: uppercase; }
+        .item p { font-weight: 600; font-size: 1.1rem; margin-top: 5px; }
 
-        /* Animation */
-        @keyframes pulse {
-            0% { opacity: 0.5; }
-            50% { opacity: 1; }
-            100% { opacity: 0.5; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-        .loading { animation: pulse 1s infinite; font-style: italic; display: none; }
+        .weather-box { animation: fadeIn 0.5s ease-out; }
     </style>
 </head>
 <body>
@@ -97,79 +101,80 @@
     <div class="card">
         <div class="brand-name">My_skycast</div>
 
-        <div class="search">
-            <input type="text" id="cityInput" placeholder="Enter city or town..." value="Bhubaneswar">
-            <button onclick="getWeather()">GO</button>
+        <div class="search-container">
+            <input type="text" id="userInput" placeholder="Search City, District, or Country..." value="Odisha">
+            <button onclick="fetchWeather()">SEARCH</button>
         </div>
 
-        <div id="loading" class="loading">Searching global maps...</div>
+        <div id="loader" class="loading">Locating place...</div>
 
-        <div id="weatherContent">
-            <p class="info" id="statusHeader">Current Weather</p>
-            <p class="city" id="cityName">Bhubaneswar</p>
-            <h1 class="temp" id="temperature">--°C</h1>
+        <div id="weatherBox" class="weather-box">
+            <p class="region-info" id="fullLocation">India</p>
+            <h2 class="city-title" id="displayName">Odisha</h2>
+            <h1 class="temp-display" id="mainTemp">--°C</h1>
             
-            <div class="details">
-                <div class="col">
+            <div class="grid">
+                <div class="item">
                     <span>Wind Speed</span>
-                    <p id="wind">-- km/h</p>
+                    <p id="windSpeed">-- km/h</p>
                 </div>
-                <div class="col">
-                    <span>Region</span>
-                    <p id="country">--</p>
+                <div class="item">
+                    <span>Weather Code</span>
+                    <p id="weatherDesc">Clear</p>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        async function getWeather() {
-            const city = document.getElementById('cityInput').value;
-            const content = document.getElementById('weatherContent');
-            const loader = document.getElementById('loading');
-            
-            if(!city) return alert("Please type a place name!");
+        async function fetchWeather() {
+            const query = document.getElementById('userInput').value;
+            const loader = document.getElementById('loader');
+            const weatherBox = document.getElementById('weatherBox');
 
-            // Show loading, hide content
+            if (!query) return;
+
             loader.style.display = "block";
-            content.style.opacity = "0.3";
+            weatherBox.style.opacity = "0.2";
 
             try {
-                // STEP 1: Search for the city (using a wider search)
-                const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`;
-                const geoRes = await fetch(geoUrl);
-                const geoData = await geoRes.json();
+                // 1. GLOBAL SEARCH: Finds any city, district, village or continent
+                const searchUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1&language=en&format=json`;
+                const searchRes = await fetch(searchUrl);
+                const searchData = await searchRes.json();
 
-                if (!geoData.results) {
-                    alert("Place not found. Try adding the state or country name (e.g., 'London, UK')");
-                    loader.style.display = "none";
-                    content.style.opacity = "1";
+                if (!searchData.results) {
+                    alert("Place not found! Try being more specific (e.g., 'Cuttack, Odisha' or 'Paris, France').");
                     return;
                 }
 
-                const { latitude, longitude, name, admin1, country } = geoData.results[0];
+                const place = searchData.results[0];
+                const { latitude, longitude, name, admin1, country } = place;
 
-                // STEP 2: Get the weather for that specific spot
+                // 2. GET WEATHER: Specific to those exact coordinates
                 const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`);
                 const weatherData = await weatherRes.json();
 
-                // STEP 3: Update the Screen
-                document.getElementById('cityName').innerText = name;
-                document.getElementById('country').innerText = admin1 || country || "Global";
-                document.getElementById('temperature').innerText = Math.round(weatherData.current_weather.temperature) + "°C";
-                document.getElementById('wind').innerText = weatherData.current_weather.windspeed + " km/h";
-                document.getElementById('statusHeader').innerText = "Weather in " + name;
+                // 3. UPDATE UI
+                document.getElementById('displayName').innerText = name;
+                document.getElementById('fullLocation').innerText = `${admin1 ? admin1 + ', ' : ''}${country}`;
+                document.getElementById('mainTemp').innerText = Math.round(weatherData.current_weather.temperature) + "°C";
+                document.getElementById('windSpeed').innerText = weatherData.current_weather.windspeed + " km/h";
+                
+                // Weather condition description logic
+                const code = weatherData.current_weather.weathercode;
+                document.getElementById('weatherDesc').innerText = code === 0 ? "Sunny" : code < 50 ? "Cloudy" : "Rainy";
 
-            } catch (error) {
-                alert("Internet error! Please check your connection.");
+            } catch (err) {
+                alert("Error connecting to weather service.");
             } finally {
                 loader.style.display = "none";
-                content.style.opacity = "1";
+                weatherBox.style.opacity = "1";
             }
         }
 
-        // Run automatically when page opens
-        getWeather();
+        // Run on start
+        fetchWeather();
     </script>
 </body>
 </html>
