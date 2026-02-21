@@ -3,57 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My_skycast | Global Weather Dashboard</title>
+    <title>My_skycast | Global Weather</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
         body {
             background: linear-gradient(135deg, #1e3c72, #2a5298);
             min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            padding: 20px;
+            display: flex; justify-content: center; align-items: center; color: white; padding: 20px;
         }
         .card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(15px);
-            padding: 30px;
-            border-radius: 25px;
-            width: 100%;
-            max-width: 400px;
-            text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(15px);
+            padding: 30px; border-radius: 25px; width: 100%; max-width: 400px;
+            text-align: center; border: 1px solid rgba(255, 255, 255, 0.2);
             box-shadow: 0 20px 50px rgba(0,0,0,0.3);
         }
-        .brand-name { font-size: 1.2rem; font-weight: 800; color: #ffce54; text-transform: uppercase; margin-bottom: 20px; letter-spacing: 2px; }
-        .search { display: flex; background: rgba(255, 255, 255, 0.2); border-radius: 15px; padding: 5px; margin-bottom: 20px; }
+        .brand { font-size: 1.2rem; font-weight: 800; color: #ffce54; text-transform: uppercase; margin-bottom: 20px; }
+        .search-box { display: flex; background: rgba(255, 255, 255, 0.2); border-radius: 15px; padding: 5px; margin-bottom: 20px; }
         input { background: transparent; border: none; outline: none; color: white; padding: 10px; width: 100%; font-size: 16px; }
         button { background: #ffce54; border: none; border-radius: 10px; padding: 10px 20px; cursor: pointer; font-weight: bold; color: #1e3c72; }
-        .city { font-size: 2.2rem; margin-top: 10px; font-weight: 600; }
+        .city { font-size: 2rem; font-weight: 600; margin-top: 10px; }
         .temp { font-size: 4.5rem; font-weight: 700; margin: 5px 0; }
-        .info { opacity: 0.8; font-size: 0.8rem; letter-spacing: 1px; text-transform: uppercase; }
         .details { display: flex; justify-content: space-around; margin-top: 25px; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.2); }
-        .col span { font-size: 0.7rem; opacity: 0.6; display: block; }
-        .col p { font-weight: 600; font-size: 1.1rem; margin-top: 5px; }
-        #loader { display: none; margin-bottom: 10px; color: #ffce54; font-style: italic; }
+        .col span { font-size: 0.7rem; opacity: 0.6; display: block; text-transform: uppercase; }
+        .col p { font-weight: 600; font-size: 1.1rem; }
+        #loader { display: none; color: #ffce54; margin-bottom: 10px; font-weight: bold; }
     </style>
 </head>
 <body>
-
     <div class="card">
-        <div class="brand-name">My_skycast</div>
-        <div class="search">
-            <input type="text" id="cityInput" placeholder="Search City or State..." value="Odisha">
+        <div class="brand">My_skycast</div>
+        <div class="search-box">
+            <input type="text" id="cityInput" placeholder="Enter City (e.g. Bhubaneswar)" value="Bhubaneswar">
             <button onclick="getWeather()">GO</button>
         </div>
-        <div id="loader">Searching global data...</div>
+        <div id="loader">Searching...</div>
         <div id="weatherContent">
-            <p class="info" id="locationLabel">Current Weather</p>
+            <p id="locationLabel" style="opacity: 0.7; font-size: 0.8rem;">WEATHER IN</p>
             <p class="city" id="cityName">--</p>
             <h1 class="temp" id="temperature">--°C</h1>
             <div class="details">
-                <div class="col"><span>Wind Speed</span><p id="wind">-- km/h</p></div>
+                <div class="col"><span>Wind</span><p id="wind">-- km/h</p></div>
                 <div class="col"><span>Region</span><p id="region">--</p></div>
             </div>
         </div>
@@ -61,44 +50,49 @@
 
     <script>
         async function getWeather() {
-            const query = document.getElementById('cityInput').value;
+            const query = document.getElementById('cityInput').value.trim();
             const loader = document.getElementById('loader');
             const content = document.getElementById('weatherContent');
+            
             if(!query) return;
 
             loader.style.display = "block";
             content.style.opacity = "0.3";
 
             try {
-                // The "Fuzzy" search allows finding states and districts
-                const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=10&language=en&format=json`);
-                const geoData = await geoRes.json();
+                // IMPROVED SEARCH: Using a count of 20 and a direct fetch
+                const searchResponse = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=20&language=en&format=json`);
+                const searchData = await searchResponse.json();
 
-                if (!geoData.results) {
-                    alert("Location not found! Try adding 'India' after the name.");
+                if (!searchData.results || searchData.results.length === 0) {
+                    alert("Location not found. Try adding ', India' after the name!");
                     return;
                 }
 
-                // We take the first result (most relevant)
-                const loc = geoData.results[0];
-                const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current_weather=true`);
-                const weatherData = await weatherRes.json();
+                // Pick the result that is in India if possible, else take the first one
+                const loc = searchData.results.find(r => r.country === "India") || searchData.results[0];
 
-                // Update UI
+                const weatherResponse = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current_weather=true`);
+                const weatherData = await weatherResponse.json();
+
+                // Update text
                 document.getElementById('cityName').innerText = loc.name;
                 document.getElementById('temperature').innerText = Math.round(weatherData.current_weather.temperature) + "°C";
                 document.getElementById('wind').innerText = weatherData.current_weather.windspeed + " km/h";
                 document.getElementById('region').innerText = loc.admin1 || loc.country;
-                document.getElementById('locationLabel').innerText = `Weather in ${loc.name}`;
+                document.getElementById('locationLabel').innerText = "WEATHER IN " + loc.name.toUpperCase();
 
             } catch (error) {
-                console.error(error);
+                console.error("Fetch error:", error);
+                alert("Network error. Please try again!");
             } finally {
                 loader.style.display = "none";
                 content.style.opacity = "1";
             }
         }
-        getWeather(); // Run on load
+        
+        // Auto-run on first load
+        getWeather();
     </script>
 </body>
 </html>
