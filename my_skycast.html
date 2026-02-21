@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>My_skycast | Weather Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+
+        body {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+
+        /* Brand Logo Style */
+        .brand-name {
+            font-size: 1.2rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            color: #ffce54;
+            text-transform: uppercase;
+            text-shadow: 0 0 10px rgba(255, 206, 84, 0.5);
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            padding: 30px;
+            border-radius: 25px;
+            width: 380px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+        }
+
+        .search {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 5px 15px;
+            margin-bottom: 25px;
+        }
+
+        input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: white;
+            padding: 10px;
+            width: 100%;
+            font-size: 16px;
+        }
+
+        button {
+            background: white;
+            border: none;
+            border-radius: 10px;
+            padding: 8px 15px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        button:hover { background: #ddd; transform: scale(1.05); }
+
+        .city { font-size: 2.2rem; font-weight: 500; margin-top: 10px; }
+        .temp { font-size: 4.5rem; font-weight: 700; margin: 5px 0; color: #fff; }
+        .desc { text-transform: uppercase; letter-spacing: 3px; opacity: 0.7; font-size: 0.8rem; }
+
+        .details {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .col span { display: block; font-size: 0.7rem; opacity: 0.6; text-transform: uppercase; }
+        .col p { font-weight: 600; margin-top: 5px; font-size: 1.1rem; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .weather-content { animation: fadeIn 0.8s ease; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <div class="brand-name">My_skycast</div>
+
+        <div class="search">
+            <input type="text" id="cityInput" placeholder="Search city..." value="New York">
+            <button onclick="getWeather()">GO</button>
+        </div>
+
+        <div class="weather-content" id="weatherContent">
+            <p class="desc">Live Conditions</p>
+            <p class="city" id="cityName">New York</p>
+            <h1 class="temp" id="temperature">--°C</h1>
+            
+            <div class="details">
+                <div class="col">
+                    <span>Wind Speed</span>
+                    <p id="wind">-- km/h</p>
+                </div>
+                <div class="col">
+                    <span>Current Day</span>
+                    <p id="day">Today</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function getWeather() {
+            const city = document.getElementById('cityInput').value;
+            const cityDisplay = document.getElementById('cityName');
+            const tempDisplay = document.getElementById('temperature');
+            const windDisplay = document.getElementById('wind');
+
+            try {
+                const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${city}&count=1&language=en&format=json`);
+                const geoData = await geoRes.json();
+
+                if (!geoData.results) {
+                    alert("Location not found! Please check the spelling.");
+                    return;
+                }
+
+                const { latitude, longitude, name } = geoData.results[0];
+                const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`);
+                const weatherData = await weatherRes.json();
+
+                cityDisplay.innerHTML = name;
+                tempDisplay.innerHTML = Math.round(weatherData.current_weather.temperature) + "°C";
+                windDisplay.innerHTML = weatherData.current_weather.windspeed + " km/h";
+
+            } catch (error) {
+                console.error("Data Fetch Error:", error);
+            }
+        }
+        // Initial call
+        getWeather();
+    </script>
+</body>
+</html>
